@@ -372,7 +372,7 @@ namespace MyTool
 
                             var index = 0;
                             //Handler.Log("//==========================RUN TASKS==========================//");
-                            for (var j = startIndex; j <= endIndex; j++)
+                            for (var j = 1; j <= endIndex; j++)
                             {
                                 //Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
                                 //Handler.Log("Profile index: " + j.ToString());                                
