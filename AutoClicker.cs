@@ -44,10 +44,9 @@ namespace MyTool
         static bool isRunningAuto = false;
         static bool isRunningFreebitco = false;
         static bool isRunningFreebitcoin = false;
-        static int startIndex = 1;
-        static int endIndex = 1;
-        static int fromProfile = 0;
         static int numOfProfiles = 0;
+        static int startIndex = 0;
+        static int endIndex = 1;
         static int counterFreebitcoinTaskTimer = 0;
         static int counterFreebitcoTaskTimer = 0;
 
@@ -163,12 +162,12 @@ namespace MyTool
                 if (frmCreateAccounts.successful)
                 {
                     var total = (frmCreateAccounts.accountType == frmCreateAccounts.AccountType.Timebucks ? Properties.Settings.Default.TotalProfilesTimebucks : Properties.Settings.Default.TotalProfilesPresearch);
-                    if (int.Parse(txtToProfile.Text.Trim()) < total)
+                    if (int.Parse(txtTotalProfiles.Text.Trim()) < total)
                     {
-                        txtToProfile.Text = total.ToString();
+                        txtTotalProfiles.Text = total.ToString();
                         numOfProfiles = total;
                     }
-                    else numOfProfiles = int.Parse(txtToProfile.Text.Trim());
+                    else numOfProfiles = int.Parse(txtTotalProfiles.Text.Trim());
                     UpdateSettings();
                 }
             }
@@ -306,16 +305,24 @@ namespace MyTool
             numOfProfilesManual = Properties.Settings.Default.TotalProfilesManual;
             numOfProfilesManualProxy = Properties.Settings.Default.TotalProfilesManualProxy;
 
-            var numProfilesEveryRunning = 1;
-            var fromProfileIndex = 0;
-            var toProfileIndex = 0;
+            var numProfilesEveryRunning = 1;                        
             var count = 1;
-            var runningCount = 0;
+            var runningCount = 0;            
+
+            if (!isProxy)
+            {
+                txtFromProfile.Text = Properties.Settings.Default.FromProfile.ToString();
+                txtTotalProfiles.Text = Properties.Settings.Default.TotalProfiles.ToString();
+            }
+            else
+            {
+                txtFromProfile.Text = Properties.Settings.Default.FromProfile.ToString();
+                txtTotalProfiles.Text = Properties.Settings.Default.TotalProfilesAutoProxy.ToString();
+            }
+
             int.TryParse(txtProfilesEveryRunning.Text.Trim(), out numProfilesEveryRunning);
-            int.TryParse(txtFromProfile.Text.Trim(), out fromProfileIndex);
-            int.TryParse(txtToProfile.Text.Trim(), out toProfileIndex);
-            startIndex = 1;
-            endIndex = numProfilesEveryRunning;
+            int.TryParse(txtFromProfile.Text.Trim(), out startIndex);
+            int.TryParse(txtTotalProfiles.Text.Trim(), out numOfProfiles);            
             var isRunning = false;
             var runS_T = false;
             var runS = false;
@@ -329,20 +336,11 @@ namespace MyTool
             var dicProfiles = new Dictionary<int, bool>();
             var dicRunnings = new Dictionary<int, bool>();
             waitTime = 0;
-                        
-            if (!isProxy)
-            {
-                fromProfile = Properties.Settings.Default.FromProfile;
-                numOfProfiles = Properties.Settings.Default.TotalProfilesAuto;
-            }
-            else numOfProfiles = Properties.Settings.Default.TotalProfilesAutoProxy;
-
-            fromProfile = (fromProfileIndex == 0 ? fromProfile : fromProfileIndex);
-            numOfProfiles = numOfProfiles >= toProfileIndex ? numOfProfiles : toProfileIndex;
+            endIndex = startIndex + numProfilesEveryRunning - 1;
             #endregion
 
             #region Loop profiles                
-            for (int i = fromProfile; i <= numOfProfiles;)
+            for (int i = startIndex; i <= numOfProfiles;)
             {
                 try
                 {
@@ -369,10 +367,9 @@ namespace MyTool
                                 else user = auto + proxy + "User";
                             }
                             else user = auto + "User";
-
-                            var index = 0;
+                            
                             //Handler.Log("//==========================RUN TASKS==========================//");
-                            for (var j = 1; j <= endIndex; j++)
+                            for (var j = 1; j <= numProfilesEveryRunning; j++)
                             {
                                 //Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
                                 //Handler.Log("Profile index: " + j.ToString());                                
@@ -539,14 +536,18 @@ namespace MyTool
                                         profile = "";
                                         Thread.Sleep(5000);
                                     }
-                                }
-                                //isRunning = true;
+                                }                                
                                 runningCount++;
-                                dicProfiles.Add(jj, true);
-                                if (index == 0) startIndex = jj;
-                                index++;
+                                if (dicProfiles.ContainsKey(jj))
+                                {
+                                    dicProfiles.Remove(jj);
+                                    dicProfiles.Add(jj, true);
+                                }                                    
+                                else dicProfiles.Add(jj, true);
+                                if (runningCount == numProfilesEveryRunning) startIndex = jj;
                                 if (!string.IsNullOrEmpty(profile))
                                 {
+                                    isRunning = true;
                                     dicRunnings.Remove(jj);
                                     dicRunnings.Add(jj, true);
                                     toolStripStatus.Text = serviceType + numOfProfiles + ", openning profile User" + jj;
@@ -559,7 +560,6 @@ namespace MyTool
                         {
                             waitTime = (new Random()).Next(20 * 60 * 1000, 30 * 60 * 1000) + 300;
                             isRunning = dicRunnings.ContainsValue(true) ? true : false;
-                            var end = endIndex;
                             dicRunnings = new Dictionary<int, bool>();
                             runningCount = 0;
                             count++;
@@ -574,7 +574,7 @@ namespace MyTool
                             {
                                 var desc = "Open profile " + profile + Environment.NewLine; 
                                 desc += "-----------------------------------------------------------------" + Environment.NewLine;                                
-                                desc += "Openning Timebucks.com with profile User" + startIndex + (startIndex < end ? (" to User" + end) : "");                                
+                                desc += "Openning Timebucks.com with profile User" + startIndex + (startIndex < endIndex ? (" to User" + endIndex) : "");                                
                                 Handler.StartProcess(OperationType.STARTAUTO, appPath, profile, false, true, desc);
                                 var timer = 40 * 60;
                                 if (runT && !runS_T && runS) timer = 30 * 60;
@@ -589,7 +589,7 @@ namespace MyTool
                                         m--;
                                         s = 59;
                                     }
-                                    toolStripStatus.Text = "Openning Timebucks.com with profile User" + startIndex + (startIndex < end ? (" to User" + end) : "") + ", please wait for next profiles in ... " + m + ":" + s;
+                                    toolStripStatus.Text = "Openning Timebucks.com with profile User" + startIndex + (startIndex < endIndex ? (" to User" + endIndex) : "") + ", please wait for next profiles in ... " + m + ":" + s;
                                     Thread.Sleep(1000);
                                 }
                                 if (chkFreeBitcoin.Checked) toolStripStatus.Text = "Openning Freebitcoin.io...";                                
@@ -606,7 +606,7 @@ namespace MyTool
                     autoStopped = true;
                     Handler.Log("//===========================ERRORS============================//");
                     Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
-                    Handler.Log("There's an error when running profiles!" + System.Environment.NewLine + ex.StackTrace);
+                    Handler.Log("There's an error when running profiles!" + System.Environment.NewLine + ex.Message + System.Environment.NewLine + ex.StackTrace);
                     Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, false, false);
                     if (isAuto)
                     {
@@ -1060,13 +1060,13 @@ namespace MyTool
                     chkIsRunProfilesInstalled.Checked = false;
                     return;
                 }
-                txtToProfile.Text = totalProfiles.ToString();
-                txtToProfile.Enabled = false;
+                txtTotalProfiles.Text = totalProfiles.ToString();
+                txtTotalProfiles.Enabled = false;
             }
             else
             {
-                txtToProfile.Enabled = true;
-                txtToProfile.Text = numOfProfiles.ToString();
+                txtTotalProfiles.Enabled = true;
+                txtTotalProfiles.Text = numOfProfiles.ToString();
             }
             Properties.Settings.Default.IsRunProfilesInstalled = chkIsRunProfilesInstalled.Checked;
             Properties.Settings.Default.Save();
@@ -1098,7 +1098,7 @@ namespace MyTool
                     MessageBox.Show("From profile cannot larger than number of profiles installed!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     txtFromProfile.Text = numOfProfiles.ToString();
                 }
-                Properties.Settings.Default.FromProfile = fromProfile = int.Parse(txtFromProfile.Text.Trim());
+                Properties.Settings.Default.FromProfile = startIndex = int.Parse(txtFromProfile.Text.Trim());
                 Properties.Settings.Default.Save();
                 changed = true;
             }
@@ -1106,14 +1106,14 @@ namespace MyTool
         private void txtTotalProfiles_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Control) return;
-            if (!string.IsNullOrEmpty(txtToProfile.Text.Trim()))
+            if (!string.IsNullOrEmpty(txtTotalProfiles.Text.Trim()))
             {
-                if (int.Parse(txtToProfile.Text.Trim()) > Properties.Settings.Default.NumOfProfilesInstalled)
+                if (int.Parse(txtTotalProfiles.Text.Trim()) > Properties.Settings.Default.NumOfProfilesInstalled)
                 {
                     MessageBox.Show("Total profiles cannot larger than number of profiles installed!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    txtToProfile.Text = numOfProfiles.ToString();
+                    txtTotalProfiles.Text = numOfProfiles.ToString();
                 }
-                Properties.Settings.Default.TotalProfiles = numOfProfiles = int.Parse(txtToProfile.Text.Trim());
+                Properties.Settings.Default.TotalProfiles = numOfProfiles = int.Parse(txtTotalProfiles.Text.Trim());
                 Properties.Settings.Default.Save();
                 changed = true;
             }
@@ -1237,9 +1237,9 @@ namespace MyTool
 
                     txtProfilesEveryRunning.Text = settings.Split(';')[6].Split(':')[1].ToString();
                     Properties.Settings.Default.NumProfilesEveryRunning = int.Parse(settings.Split(';')[6].Split(':')[1]);
-                    Properties.Settings.Default.FromProfile = fromProfile = int.Parse(settings.Split(';')[7].Split(':')[1]);
+                    Properties.Settings.Default.FromProfile = startIndex = int.Parse(settings.Split(';')[7].Split(':')[1]);
                     txtFromProfile.Text = settings.Split(';')[7].Split(':')[1].ToString();
-                    txtToProfile.Text = settings.Split(';')[8].Split(':')[1].ToString();                    
+                    txtTotalProfiles.Text = settings.Split(';')[8].Split(':')[1].ToString();                    
                     Properties.Settings.Default.TotalProfiles = numOfProfiles = int.Parse(settings.Split(';')[8].Split(':')[1]);
                     Properties.Settings.Default.IsRunProfilesInstalled = chkIsRunProfilesInstalled.Checked = bool.Parse(settings.Split(';')[9].Split(':')[1].Trim());
                     Properties.Settings.Default.IsAutoRunServices = chkIsAutoRunServices.Checked = bool.Parse(settings.Split(';')[10].Split(':')[1].Trim());
@@ -1281,7 +1281,7 @@ namespace MyTool
 
             info.AppendLine("numofprofileseveryrunning:" + txtProfilesEveryRunning.Text.Trim());
             info.AppendLine("fromprofileindex:" + txtFromProfile.Text.Trim());
-            info.AppendLine("totalprofilesrunning:" + txtToProfile.Text.Trim());
+            info.AppendLine("totalprofilesrunning:" + txtTotalProfiles.Text.Trim());
             info.AppendLine("isrunprofilesinstalled:" + chkIsRunProfilesInstalled.Checked);
             info.AppendLine("isautorunservices:" + chkIsAutoRunServices.Checked);
 
@@ -1317,11 +1317,11 @@ namespace MyTool
 
             txtProfilesEveryRunning.Text = Properties.Settings.Default.NumProfilesEveryRunning.ToString();
             txtFromProfile.Text = Properties.Settings.Default.FromProfile.ToString();
-            txtToProfile.Text = Properties.Settings.Default.TotalProfiles.ToString();
+            txtTotalProfiles.Text = Properties.Settings.Default.TotalProfiles.ToString();
             chkIsRunProfilesInstalled.Checked = Properties.Settings.Default.IsRunProfilesInstalled;
             chkIsAutoRunServices.Checked = Properties.Settings.Default.IsAutoRunServices;
 
-            fromProfile = Properties.Settings.Default.FromProfile;
+            startIndex = Properties.Settings.Default.FromProfile;
             numOfProfiles = Properties.Settings.Default.TotalProfiles;
             numOfProfilesTimebucks = Properties.Settings.Default.TotalProfilesTimebucks;
             numOfProfilesPresearch = Properties.Settings.Default.TotalProfilesPresearch;

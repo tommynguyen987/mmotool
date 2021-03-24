@@ -41,7 +41,9 @@
             this.groupSettings = new System.Windows.Forms.GroupBox();
             this.chkIsAutoRunServices = new System.Windows.Forms.CheckBox();
             this.chkIsRunProfilesInstalled = new System.Windows.Forms.CheckBox();
-            this.txtToProfile = new System.Windows.Forms.TextBox();
+            this.txtFromProfile = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.txtTotalProfiles = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.txtProfilesEveryRunning = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
@@ -67,8 +69,6 @@
             this.toolStripStatus2 = new System.Windows.Forms.ToolStripStatusLabel();
             this.btnCreateAccountsManual = new System.Windows.Forms.Button();
             this.btnStartManual = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.txtFromProfile = new System.Windows.Forms.TextBox();
             this.tabControl1.SuspendLayout();
             this.tabAutorunTasks.SuspendLayout();
             this.groupAutoTasks.SuspendLayout();
@@ -214,7 +214,7 @@
             this.groupSettings.Controls.Add(this.chkIsRunProfilesInstalled);
             this.groupSettings.Controls.Add(this.txtFromProfile);
             this.groupSettings.Controls.Add(this.label3);
-            this.groupSettings.Controls.Add(this.txtToProfile);
+            this.groupSettings.Controls.Add(this.txtTotalProfiles);
             this.groupSettings.Controls.Add(this.label2);
             this.groupSettings.Controls.Add(this.txtProfilesEveryRunning);
             this.groupSettings.Controls.Add(this.label1);
@@ -250,14 +250,34 @@
             this.chkIsRunProfilesInstalled.UseVisualStyleBackColor = true;
             this.chkIsRunProfilesInstalled.CheckedChanged += new System.EventHandler(this.chkIsRunProfilesInstalled_CheckedChanged);
             // 
-            // txtToProfile
+            // txtFromProfile
             // 
-            this.txtToProfile.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtToProfile.Location = new System.Drawing.Point(262, 99);
-            this.txtToProfile.Name = "txtToProfile";
-            this.txtToProfile.Size = new System.Drawing.Size(203, 24);
-            this.txtToProfile.TabIndex = 2;
-            this.txtToProfile.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtTotalProfiles_KeyUp);
+            this.txtFromProfile.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtFromProfile.Location = new System.Drawing.Point(262, 62);
+            this.txtFromProfile.Name = "txtFromProfile";
+            this.txtFromProfile.Size = new System.Drawing.Size(203, 24);
+            this.txtFromProfile.TabIndex = 2;
+            this.txtFromProfile.Text = "1";
+            this.txtFromProfile.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtFromProfile_KeyUp);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label3.Location = new System.Drawing.Point(20, 63);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(80, 17);
+            this.label3.TabIndex = 0;
+            this.label3.Text = "Profile start:";
+            // 
+            // txtTotalProfiles
+            // 
+            this.txtTotalProfiles.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtTotalProfiles.Location = new System.Drawing.Point(262, 99);
+            this.txtTotalProfiles.Name = "txtTotalProfiles";
+            this.txtTotalProfiles.Size = new System.Drawing.Size(203, 24);
+            this.txtTotalProfiles.TabIndex = 2;
+            this.txtTotalProfiles.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtTotalProfiles_KeyUp);
             // 
             // label2
             // 
@@ -265,9 +285,9 @@
             this.label2.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label2.Location = new System.Drawing.Point(20, 102);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(75, 17);
+            this.label2.Size = new System.Drawing.Size(87, 17);
             this.label2.TabIndex = 0;
-            this.label2.Text = "Profile end:";
+            this.label2.Text = "Total profiles:";
             // 
             // txtProfilesEveryRunning
             // 
@@ -276,6 +296,7 @@
             this.txtProfilesEveryRunning.Name = "txtProfilesEveryRunning";
             this.txtProfilesEveryRunning.Size = new System.Drawing.Size(203, 24);
             this.txtProfilesEveryRunning.TabIndex = 1;
+            this.txtProfilesEveryRunning.Text = "1";
             this.txtProfilesEveryRunning.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtProfilesEveryRunning_KeyUp);
             // 
             // label1
@@ -559,25 +580,6 @@
             this.btnStartManual.UseVisualStyleBackColor = true;
             this.btnStartManual.Click += new System.EventHandler(this.btnStartManual_Click);
             // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(20, 63);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(80, 17);
-            this.label3.TabIndex = 0;
-            this.label3.Text = "Profile start:";
-            // 
-            // txtFromProfile
-            // 
-            this.txtFromProfile.Font = new System.Drawing.Font("Times New Roman", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtFromProfile.Location = new System.Drawing.Point(262, 62);
-            this.txtFromProfile.Name = "txtFromProfile";
-            this.txtFromProfile.Size = new System.Drawing.Size(203, 24);
-            this.txtFromProfile.TabIndex = 2;
-            this.txtFromProfile.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtFromProfile_KeyUp);
-            // 
             // frmAutoClicker
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 17F);
@@ -626,7 +628,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox txtProfilesEveryRunning;
         private System.Windows.Forms.Button btnCreateProfiles;
-        private System.Windows.Forms.TextBox txtToProfile;
+        private System.Windows.Forms.TextBox txtTotalProfiles;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox chkIsRunProfilesInstalled;
         private System.Windows.Forms.Button btnCreateAccounts;
