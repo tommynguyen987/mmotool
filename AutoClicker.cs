@@ -42,6 +42,7 @@ namespace MyTool
         static bool manualStopped = false;
         static bool changed = false;
         static bool isRunningAuto = false;
+        static bool isRunningManual = false;
         static bool isRunningFreebitco = false;
         static bool isRunningFreebitcoin = false;
         static int numOfProfiles = 0;
@@ -147,7 +148,7 @@ namespace MyTool
         private void frmAutoClicker_Load(object sender, EventArgs e)
         {
             GetSettings();
-            Thread.Sleep(3000);
+            Thread.Sleep(2000);
             if (chkIsAutoRunServices.Checked)
             {
                 StartTasks(true);
@@ -184,9 +185,8 @@ namespace MyTool
             if (confirm == DialogResult.Yes)
             {
                 if (changed) UpdateSettings();
-                KillProcesses(true, true);                
+                KillProcesses(true, true);
                 KillProcesses(true, false);
-                //KillProcesses(false, true);
                 Handler.DeleteFiles(false, startIndex, endIndex, chkPresearch.Checked, chkTimebucks.Checked);
                 this.Dispose();
                 this.Close();
@@ -202,13 +202,14 @@ namespace MyTool
             if (btnStartTasks.Text == "START") StartTasks(true);
             else
             {
+                lstStatus.Text += System.Environment.NewLine + "Stopped tasks!" + System.Environment.NewLine;
+                Application.DoEvents();
                 autoStopped = true;
                 isRunning = isTimebucksRunning = isRunningFreebitcoin = isRunningFreebitco = false;
-                KillProcesses(true,true);
+                KillProcesses(true, true);
                 KillProcesses(true, false);
                 EnableControls(true, true);
-                btnStartTasks.Text = "START";
-                toolStripStatus.Text = "Ready!";
+                btnStartTasks.Text = "START";                
             }
         }
         private void StartTasks(bool isAuto)
@@ -219,7 +220,9 @@ namespace MyTool
                 isRunning = true;
                 btnStartTasks.Text = "STOP";
                 EnableControls(false, true);
-                toolStripStatus.Text = "Starting auto tasks...";
+                lstStatus.Text += System.Environment.NewLine + "//====================AUTO TASKS====================//" + System.Environment.NewLine;
+                lstStatus.Text += System.Environment.NewLine + "Starting auto tasks..." + System.Environment.NewLine;
+                Application.DoEvents();
                 if (chkTimebucks.Checked) isTimebucksRunning = true;
                 if (changed)
                 {
@@ -232,9 +235,10 @@ namespace MyTool
             else
             {
                 manualStopped = false;
+                isRunningManual = true;
                 btnStartManual.Text = "STOP";                
                 EnableControls(false, false);
-                toolStripStatus2.Text = "Starting manual tasks...";
+                //toolStripStatus2.Text += "Starting manual tasks..." + System.Environment.NewLine;
                 if (chkFreeBitco.Checked || chkFreeLitecoin.Checked || chkBitpick.Checked || chkBither.Checked ||
                     chkBtcClicks.Checked || chkBtcVic.Checked || chkAdbtc.Checked || chkHashingadSpace.Checked)
                     Task.Factory.StartNew(() => HandleAutoClicker(false, false));
@@ -246,11 +250,22 @@ namespace MyTool
             {
                 while (!autoStopped)
                 {
-                    Thread.Sleep(1000 * 10);
+                    var isInternetConnected = true;
+                    do
+                    {
+                        isInternetConnected = Handler.NetworkIsAvailable();
+                        if (!isInternetConnected)
+                        {
+                            lstStatus.Text += System.Environment.NewLine + "No internet connection. Please check connection..." + System.Environment.NewLine;
+                            Application.DoEvents();
+                            Thread.Sleep(5000);
+                        }
+                    } while (!isInternetConnected);
+                    Thread.Sleep(1000 * 5);
                     if (chkFreeBitcoin.Checked && !isRunningFreebitcoin) Task.Factory.StartNew(() => StartAutoTasks(AutoTasks.Freebitcoin));
-                    Thread.Sleep(1000 * 10);
+                    Thread.Sleep(1000 * 5);
                     if (chkAutoFreebitco.Checked && !isRunningFreebitco) Task.Factory.StartNew(() => StartAutoTasks(AutoTasks.AutoFreebitco));                                            
-                    Thread.Sleep(1000 * 10);
+                    Thread.Sleep(1000 * 5);
                     if ((chkTimebucks.Checked || chkPresearch.Checked || chkPaidviewpoint.Checked || chkIndexBitco.Checked) && !isRunningAuto) Task.Factory.StartNew(() => AutoClickerByProfiles(true, false));                        
                 }
             }
@@ -269,27 +284,16 @@ namespace MyTool
                 if (isAuto)
                 {
                     btnStartTasks.Text = "START";
-                    toolStripStatus.Text = "Ready!";
+                    //lstStatus.Text = "Ready!";
                 }
-                else
-                {
-                    btnStartManual.Text = "START";
-                    toolStripStatus2.Text = "Ready!";
-                }
+                //else
+                //{
+                    //btnStartManual.Text = "START";
+                    //toolStripStatus2.Text = "Ready!";
+                //}
                 //EnableControls(true, isAuto);
                 return;
-            }
-
-            var isInternetConnected = true;
-            do
-            {
-                isInternetConnected = Handler.NetworkIsAvailable();
-                if (!isInternetConnected)
-                {
-                    if (isAuto) toolStripStatus.Text = "No internet connection. Waiting for connecting again...";
-                    else toolStripStatus2.Text = "No internet connection. Waiting for connecting again...";
-                }
-            } while (!isInternetConnected);
+            }            
             #endregion
 
             #region Variables
@@ -331,10 +335,9 @@ namespace MyTool
             var countSlideshows = "1";
             var serviceType = "Total profiles: ";
             var auto = "Auto.";
-            var proxy = "Proxy.";
             var user = "";
-            var dicProfiles = new Dictionary<int, bool>();
-            var dicRunnings = new Dictionary<int, bool>();
+            var dicProfiles = new Dictionary<string, bool>();
+            var dicRunnings = new Dictionary<string, bool>();
             waitTime = 0;
             endIndex = startIndex + numProfilesEveryRunning - 1;
             #endregion
@@ -346,34 +349,44 @@ namespace MyTool
                 {
                     if (autoStopped)
                     {
-                        toolStripStatus.Text = "Ready!";
                         return;
                     }
                     if (!chkTimebucks.Checked && !chkPresearch.Checked && !chkPaidviewpoint.Checked && !chkIndexBitco.Checked)
                     {
-                        toolStripStatus.Text = "Waiting for next running...";
-                        Thread.Sleep(1000 * 10);
+                        lstStatus.Text += System.Environment.NewLine + "Please choose at lease a task to run." + System.Environment.NewLine;
+                        Application.DoEvents();
+                        Thread.Sleep(1000 * 5);
                         return;
-                    }
-                    toolStripStatus.Text = "Openning Timebucks.com. Total profiles: " + numOfProfiles;
+                    }                    
                     if (!string.IsNullOrEmpty(appPath))
                     {
                         var profile = "";
                         if (!isRunning)
                         {
-                            if (isProxy)
-                            {
-                                if (i == 1) user = auto + "Default";
-                                else user = auto + proxy + "User";
-                            }
-                            else user = auto + "User";
+                            //if (isProxy)
+                            //{
+                            if (i == 1) user = auto;// + "Default";
+                                                    //else user = auto + proxy + "User";
+                                                    //}
+                            else
+                                user = auto + "User";
                             
                             //Handler.Log("//==========================RUN TASKS==========================//");
                             for (var j = 1; j <= numProfilesEveryRunning; j++)
                             {
                                 //Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
                                 //Handler.Log("Profile index: " + j.ToString());                                
-                                var jj = j + i - 1;
+                                var jj = (j + i - 1).ToString();
+                                var k = 0;
+                                var isDefault = true;
+                                if (jj == "1")
+                                    jj = "Default";
+                                else
+                                {
+                                    isDefault = false;
+                                    k = int.Parse(jj);
+                                }                                        
+                                    
                                 if (dicProfiles.ContainsKey(jj))
                                 {
                                     var v = false;
@@ -381,17 +394,17 @@ namespace MyTool
                                     if (v)
                                     {
                                         //Handler.Log("Continued because of duplicating");
-                                        toolStripStatus.Text = serviceType + numOfProfiles + ", openning profiles...";
+                                        //lstStatus.Text += serviceType + numOfProfiles + ", openning profiles..." + System.Environment.NewLine;
                                         Thread.Sleep(5000);
                                         //continue;
                                     }
                                 }
                                 var path = "";
-                                dicRunnings.Add(jj, false);
-                                
+                                dicRunnings.Add(jj, false);                                
+
                                 // Timebucks
                                 var pathAds = string.Format(frmCreateAccounts.refInfoProfileFilePath, "timebucks", jj);
-                                if (chkTimebucks.Checked && jj <= numOfProfilesTimebucks)
+                                if (chkTimebucks.Checked && ((k <= numOfProfilesTimebucks && !isDefault) || isDefault))
                                 {
                                     path = string.Format(timebucksDataFilePath, jj);
                                     if (File.Exists(path))
@@ -427,6 +440,8 @@ namespace MyTool
                                             {
                                                 Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
                                                 Handler.Log("There's an error when getting ads info on timebucks!" + System.Environment.NewLine + ex.StackTrace);
+                                                lstStatus.Text += System.Environment.NewLine + "There's an error when getting ads info on timebucks!" + System.Environment.NewLine;
+                                                Application.DoEvents();
                                                 File.Delete(path);
                                                 countAds = "1";
                                                 countSlideshows = "1";
@@ -437,13 +452,15 @@ namespace MyTool
                                     }
                                     else countAds = countSlideshows = "1";
                                 }
-                                if (chkPresearch.Checked && chkTimebucks.Checked && jj <= numOfProfilesTimebucks && jj <= numOfProfilesPresearch)
+                                if (chkPresearch.Checked && chkTimebucks.Checked && ((k <= numOfProfilesTimebucks && k <= numOfProfilesPresearch && !isDefault) || isDefault))
                                 {
+                                    lstStatus.Text += System.Environment.NewLine + "Openning Timebucks.com and Presearch.org..." + System.Environment.NewLine;
+                                    Application.DoEvents();
                                     var isContinued = ((countAds == "0" || countAds == "#EANF#") && (countSlideshows == "0" || countSlideshows == "#EANF#"));
                                     if (isContinued)
                                     {
-                                        Handler.Log("Continued searchservices and ads ?" + isContinued);
-                                        toolStripStatus.Text = serviceType + numOfProfiles + ", openning profiles...";
+                                        //Handler.Log("Continued searchservices and ads ?" + isContinued);
+                                        //lstStatus.Text += serviceType + numOfProfiles + ", openning profiles..." + System.Environment.NewLine;
                                         profile = "";
                                         Thread.Sleep(5000);
                                         //continue;
@@ -452,7 +469,7 @@ namespace MyTool
                                     {
                                         var searchService = "";
                                         runS = runT = false;
-                                        searchService = "SearchServices&";
+                                        searchService = "SearchServices_Presearch&";                                        
                                         if (countAds != "0" && countAds != "#EANF#" && countSlideshows != "0" && countSlideshows != "#EANF#")
                                         {
                                             runS_T = true;
@@ -472,35 +489,38 @@ namespace MyTool
                                         {
                                             runS = true;
                                             runS_T = runT = false;
-                                            profile = "-p \"" + user + jj + "\" -no-remote \"imacros://run/?m=SearchServices.iim\"";
+                                            profile = "-p \"" + user + jj + "\" -no-remote \"imacros://run/?m=SearchServices_Presearch.iim\"";
                                         }
                                     }
                                 }
                                 else if (chkPresearch.Checked)
                                 {
-                                    if (jj <= numOfProfilesPresearch)
+                                    lstStatus.Text += System.Environment.NewLine + "Openning Presearch.org..." + System.Environment.NewLine;                                    
+                                    if ((k <= numOfProfilesPresearch && !isDefault) || isDefault)
                                     {
                                         runS = true;
                                         runS_T = runT = false;
-                                        profile = "-p \"" + user + jj + "\" -no-remote \"imacros://run/?m=SearchServices.iim\"";
+                                        profile = "-p \"" + user + jj + "\" -no-remote \"imacros://run/?m=SearchServices_Presearch.iim\"";
                                     }
                                     else
                                     {
-                                        Handler.Log("User" + jj + " not existed!");
-                                        toolStripStatus.Text = "User" + jj + " not existed!";
+                                        //Handler.Log("User" + jj + " not existed!");
+                                        lstStatus.Text += System.Environment.NewLine + "User" + jj + " not existed!" + System.Environment.NewLine;
                                         profile = "";
                                         Thread.Sleep(5000);
                                     }
+                                    Application.DoEvents();
                                 }
                                 else if (chkTimebucks.Checked)
                                 {
-                                    if (jj <= numOfProfilesTimebucks)
+                                    lstStatus.Text += System.Environment.NewLine + "Openning Timebucks.com..." + System.Environment.NewLine;
+                                    if ((k <= numOfProfilesTimebucks && !isDefault) || isDefault)
                                     {
                                         var isContinued = ((countAds == "0" || countAds == "#EANF#") && (countSlideshows == "0" || countSlideshows == "#EANF#"));
                                         if (isContinued)
                                         {
-                                            Handler.Log("Continued ads ?" + isContinued);
-                                            toolStripStatus.Text = serviceType + numOfProfiles + ", openning profiles...";
+                                            //Handler.Log("Continued ads ?" + isContinued);
+                                            //lstStatus. = serviceType + numOfProfiles + ", openning profiles...";
                                             profile = "";
                                             Thread.Sleep(5000);
                                             //continue;
@@ -531,11 +551,12 @@ namespace MyTool
                                     }
                                     else
                                     {
-                                        Handler.Log("User" + jj + " not existed!");
-                                        toolStripStatus.Text = "User" + jj + " not existed!";
+                                        //Handler.Log("User" + jj + " not existed!");
+                                        lstStatus.Text += System.Environment.NewLine + "User" + jj + " not existed!" + System.Environment.NewLine;
                                         profile = "";
                                         Thread.Sleep(5000);
                                     }
+                                    Application.DoEvents();
                                 }                                
                                 runningCount++;
                                 if (dicProfiles.ContainsKey(jj))
@@ -544,13 +565,14 @@ namespace MyTool
                                     dicProfiles.Add(jj, true);
                                 }                                    
                                 else dicProfiles.Add(jj, true);
-                                if (runningCount == numProfilesEveryRunning) startIndex = jj;
+                                if (runningCount == numProfilesEveryRunning) startIndex = (jj == "Default" ? 1 : int.Parse(jj));
                                 if (!string.IsNullOrEmpty(profile))
                                 {
                                     isRunning = true;
                                     dicRunnings.Remove(jj);
                                     dicRunnings.Add(jj, true);
-                                    toolStripStatus.Text = serviceType + numOfProfiles + ", openning profile User" + jj;
+                                    lstStatus.Text += System.Environment.NewLine + serviceType + numOfProfiles + ", openning profile " + (jj == "1" ? "Default" : jj) + System.Environment.NewLine;
+                                    Application.DoEvents();
                                     File.WriteAllText(profileIndexFilePath, jj.ToString());                                    
                                     //Thread.Sleep(5000);
                                 }
@@ -560,7 +582,7 @@ namespace MyTool
                         {
                             waitTime = (new Random()).Next(20 * 60 * 1000, 30 * 60 * 1000) + 300;
                             isRunning = dicRunnings.ContainsValue(true) ? true : false;
-                            dicRunnings = new Dictionary<int, bool>();
+                            dicRunnings = new Dictionary<string, bool>();
                             runningCount = 0;
                             count++;
                             if (i < numOfProfiles)
@@ -574,28 +596,35 @@ namespace MyTool
                             {
                                 var desc = "Open profile " + profile + Environment.NewLine; 
                                 desc += "-----------------------------------------------------------------" + Environment.NewLine;                                
-                                desc += "Openning Timebucks.com with profile User" + startIndex + (startIndex < endIndex ? (" to User" + endIndex) : "");                                
+                                desc += "Running the task with profile " + (startIndex == 1 ? "Default" : "User" + startIndex) + (startIndex < endIndex ? (" to User" + endIndex) : "");                                
                                 Handler.StartProcess(OperationType.STARTAUTO, appPath, profile, false, true, desc);
+                                lstStatus.Text += System.Environment.NewLine + desc + System.Environment.NewLine;
+                                Application.DoEvents();
                                 var timer = 40 * 60;
                                 if (runT && !runS_T && runS) timer = 30 * 60;
                                 else if (runS || runT && !runS_T) timer = 20 * 60;
                                 var m = timer / 60 - 1;
                                 var s = 60;
-                                while (m >= 0 && s > 0 && !autoStopped && (chkTimebucks.Checked || chkPresearch.Checked || chkPaidviewpoint.Checked || chkAdbtc.Checked || chkIndexBitco.Checked))
-                                {                                    
-                                    s--;
-                                    if (s == 0 && m > 0)
+                                if(numOfProfiles > 1)
+                                {
+                                    while (m >= 0 && s > 0 && !autoStopped && (chkTimebucks.Checked || chkPresearch.Checked || chkPaidviewpoint.Checked || chkAdbtc.Checked || chkIndexBitco.Checked))
                                     {
-                                        m--;
-                                        s = 59;
+                                        s--;
+                                        if (s == 0 && m > 0)
+                                        {
+                                            m--;
+                                            s = 59;
+                                        }
+                                        lstStatus.Text += System.Environment.NewLine + "Running the task with profile " + (startIndex == 1 ? "Default" : "User" + startIndex) + (startIndex < endIndex ? (" to User" + endIndex) : "") + ", please wait for next profiles in ... " + m + ":" + s + System.Environment.NewLine;
+                                        Application.DoEvents();
+                                        Thread.Sleep(1000);
                                     }
-                                    toolStripStatus.Text = "Openning Timebucks.com with profile User" + startIndex + (startIndex < endIndex ? (" to User" + endIndex) : "") + ", please wait for next profiles in ... " + m + ":" + s;
-                                    Thread.Sleep(1000);
-                                }
-                                if (chkFreeBitcoin.Checked) toolStripStatus.Text = "Openning Freebitcoin.io...";                                
-                                else toolStripStatus.Text = "Ready!";
-                                Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, false, false);
-                                isRunning = false;
+                                    //if (chkFreeBitcoin.Checked) lstStatus.Text = "Openning Freebitcoin.io...";
+                                    //else lstStatus.Text = "Ready!";
+                                    Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, false, false);
+                                    isRunning = false;
+                                    isRunningAuto = false;
+                                }                                
                             }
                         }
                         currentProfile = i;
@@ -610,28 +639,23 @@ namespace MyTool
                     Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, false, false);
                     if (isAuto)
                     {
-                        toolStripStatus.Text = "There's an error when running profiles!";
+                        lstStatus.Text += System.Environment.NewLine + "There's an error when running profiles!" + System.Environment.NewLine;
+                        Application.DoEvents();
                         btnStartTasks.Text = "START";
                     }
-                    else
-                    {
-                        toolStripStatus2.Text = "There's an error when running profiles!";
-                        btnStartManual.Text = "START";
-                    }                    
+                    //else
+                    //{
+                        //toolStripStatus2.Text = "There's an error when running profiles!";
+                        //btnStartManual.Text = "START";
+                    //}                    
                     return;
                 }
             }
-            #endregion            
-
-            isRunningAuto = false;
+            #endregion                        
         }
         private void StartAutoTasks(AutoTasks tasks)
         {
-            if (autoStopped)
-            {
-                toolStripStatus.Text = "Ready!";
-                return;
-            }
+            if (autoStopped) return;
             var path = "";
             var url = "";
             var desc = "";
@@ -639,97 +663,65 @@ namespace MyTool
             {
                 if (!chkFreeBitcoin.Checked) return;
                 isRunningFreebitcoin = true;
-                //path = GetAppPath(3);
+                path = GetAppPath(BrowserType.CocCoc);
                 url = "https://freebitcoin.io/free";
-                toolStripStatus.Text = "Openning Freebitcoin.io...";
-
-                path = string.Format(startProcessPath, MICROSOFTEDGE);
+                lstStatus.Text += System.Environment.NewLine + "Openning Freebitcoin.io..." + System.Environment.NewLine;                
+                /*
+                path = string.Format(startProcessPath, COCCOC);
                 if (!File.Exists(path))
                 {
                     var action = "START \"\" /min \"" + msEdgePath + "\"  --profile-directory=Default \"" + url + "\"";
                     Handler.CreateBatFile(action, path);
                 }
-                desc = "Open Freebitcoin.io by Microsoft Edge";
-                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, false, desc);                
-                Thread.Sleep(1000 * 60 * 5);
-                path = string.Format(killProcessPath, MICROSOFTEDGE);
-                if (!File.Exists(path)) 
-                {
-                    var action = "taskkill /F /IM " + MICROSOFTEDGE + ".exe";
-                    Handler.CreateBatFile(action, path);
-                }
-                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, MICROSOFTEDGE);                
-                if (autoStopped || !chkFreeBitcoin.Checked) return;
-                
-                 //path = GetAppPath(4);
-                path = string.Format(startProcessPath, COCCOC);
-                if (!File.Exists(path)) 
-                {
-                    var action = "START \"\" /min \"" + cococPath + "\"  --profile-directory=Default \"" + url + "\"";
-                    Handler.CreateBatFile(action, path);
-                }
+                */
                 desc = "Open Freebitcoin.io by Coc Coc";
-                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, false, desc);                
-                Thread.Sleep(1000 * 60 * 5);
+                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, true, desc);                
+                Thread.Sleep(1000 * 60 * 10);
+                lstStatus.Text += System.Environment.NewLine + "Closed Freebitcoin.io." + System.Environment.NewLine;
+                Application.DoEvents();
+                //Handler.StopProcess(OperationType.STARTAUTO, COCCOC, false, false);
                 path = string.Format(killProcessPath, COCCOC);
-                if (!File.Exists(path))
+                if (!File.Exists(path)) 
                 {
                     var action = "taskkill /F /IM " + COCCOC + ".exe";
                     Handler.CreateBatFile(action, path);
                 }
-                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, COCCOC);
-                Thread.Sleep(1000 * 60);
-                if (autoStopped || !chkFreeBitcoin.Checked) return;
-
-                path = string.Format(startProcessPath, YANDEX);
-                if (!File.Exists(path))
-                {
-                    var action = "START \"\" /min \"" + yandexPath + "\"  --profile-directory=Default \"" + url + "\"";
-                    Handler.CreateBatFile(action, path);
-                }
-                desc = "Open Freebitcoin.io by Yandex";
-                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, false, desc);                
-                Thread.Sleep(1000 * 60 * 5);                                
-                path = string.Format(killProcessPath, COCCOC);
-                if (!File.Exists(path))
-                {
-                    var action = "taskkill /F /IM " + COCCOC + ".exe";
-                    Handler.CreateBatFile(action, path);
-                }
-                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, YANDEX);
-                toolStripStatus.Text = "Closed Freebitcoin.io.";
+                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, COCCOC);                                
             }
             else
             {
                 if (!chkAutoFreebitco.Checked) return;
                 isRunningFreebitco = true;
                 url = "https://freebitco.in/?op=home";
-                toolStripStatus.Text = "Openning Freebitco.in...";
-                //path = GetAppPath(5);
+                lstStatus.Text += System.Environment.NewLine + "Openning Freebitco.in..." + System.Environment.NewLine;                
+                path = GetAppPath(BrowserType.Chrome);
+                /*
                 path = string.Format(startProcessPath, CHROME);
                 if (!File.Exists(path))
                 {
                     var action = "START \"\" /min \"" + chromePath + "\"  --profile-directory=Default \"" + url + "\"";
                     Handler.CreateBatFile(action, path);
                 }
+                */
                 desc = "Open Freebitco.in by Google Chrome";
-                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, false, desc);
-                Thread.Sleep(1000 * 60 * 10);                                
+                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, true, desc);
+                Thread.Sleep(1000 * 60 * 10);
+                //Handler.StopProcess(OperationType.STARTAUTO, CHROME, false, false);
+                lstStatus.Text += System.Environment.NewLine + "Closed Freebitco.in." + System.Environment.NewLine;
+                Application.DoEvents();
                 path = string.Format(killProcessPath, CHROME);
                 if (!File.Exists(path))
                 {
                     var action = "taskkill /F /IM " + CHROME + ".exe";
                     Handler.CreateBatFile(action, path);
                 }
-                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, CHROME);
-                toolStripStatus.Text = "Closed Freebitco.in.";
+                Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, CHROME);                
             }
             LoopAutoTasks(tasks);
         }
         private void LoopAutoTasks(AutoTasks tasks)
         {
             var counterAutoTaskTimer = 0;
-            toolStripStatus.Text = "Waiting for next running...";
             Handler.Log("//======================WAIT FOR NEXT RUN======================//");
             Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
             switch (tasks)
@@ -737,10 +729,14 @@ namespace MyTool
                 case AutoTasks.Freebitcoin:
                     counterAutoTaskTimer = counterFreebitcoinTaskTimer;
                     Handler.Log("Wait 1 hour for next running of task Freebitcoin.io");
+                    lstStatus.Text += System.Environment.NewLine + "Wait 1 hour for next running of task Freebitcoin.io..." + System.Environment.NewLine;
+                    Application.DoEvents();
                     break;
                 case AutoTasks.AutoFreebitco:
                     counterAutoTaskTimer = counterFreebitcoTaskTimer;
                     Handler.Log("Wait 1 hour for next running of task Freebitco.in");
+                    lstStatus.Text += System.Environment.NewLine + "Wait 1 hour for next running of task Freebitco.io..." + System.Environment.NewLine;
+                    Application.DoEvents();
                     break;
             }                        
             do
@@ -782,87 +778,102 @@ namespace MyTool
         }
         private void StartManualTasks()
         {
-            //var path = GetAppPath(6);
-            var url = "http://free-litecoin.com/";
-            var desc = "";
-            var path = string.Format(startProcessPath, BRAVE);
-            if (!File.Exists(path))
+            var isInternetConnected = Handler.NetworkIsAvailable();
+            if (!isInternetConnected)
             {
-                var action = "START \"\" /min \"" + bravePath + "\"  --profile-directory=Default \"" + url + "\"";
-                Handler.CreateBatFile(action, path);
-            }            
-            toolStripStatus2.Text = "Openning manual tasks...";
+                lstStatus2.Text += System.Environment.NewLine + "No internet connection. Please check connection..." + System.Environment.NewLine;
+                manualStopped = true;
+                isRunningManual = false;
+                btnStartManual.Text = "START";
+                EnableControls(true, false);
+                return;
+            }
+            var path = GetAppPath(BrowserType.Brave);
+            var killPath = string.Format(killProcessPath, BRAVE);
+            if (!File.Exists(killPath))
+            {
+                var action = "taskkill /F /IM " + BRAVE + ".exe";
+                Handler.CreateBatFile(action, killPath);
+            }
+            var url = "http://free-litecoin.com/";
+            var desc = "";                                    
+            lstStatus2.Text += System.Environment.NewLine + "//====================MANUAL TASKS====================//" + System.Environment.NewLine;
+            lstStatus2.Text += System.Environment.NewLine + "Starting manual tasks..." + System.Environment.NewLine;
             if (chkFreeBitco.Checked)
-            { 
-                //toolStripStatus2.Text = "Openning Freebitco.in...";
+            {
+                lstStatus2.Text += System.Environment.NewLine + "Openning Freebitco.in..." + System.Environment.NewLine;
                 url = "https://freebitco.in/?op=home";
                 desc = "Open Freebitco.in by Brave";
-                Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
+                Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);                
             }
             else if(chkFreeLitecoin.Checked)
-            { 
-                //toolStripStatus2.Text = "Openning Free-litecoin.com...";
+            {
+                lstStatus2.Text += System.Environment.NewLine + "Openning Free-litecoin.com..." + System.Environment.NewLine;
                 url = "http://free-litecoin.com/";
                 desc = "Open Free-litecoin.com by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if(chkBitpick.Checked)
-            { 
-                //toolStripStatus2.Text = "Openning Bitpick.co...";
+            {
+                lstStatus2.Text += System.Environment.NewLine + "Openning Bitpick.co..." + System.Environment.NewLine;
                 url = "http://bitpick.co/";
                 desc = "Open Bitpick.co by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if(chkBither.Checked)
             {
-                //toolStripStatus2.Text = "Openning Bither.one...";
+                lstStatus2.Text += System.Environment.NewLine + "Openning Bither.one..." + System.Environment.NewLine;
                 url = "http://panel.bither.one/getbither/";
                 desc = "Open Bither.one by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if (chkBtcClicks.Checked)
             {
-               //toolStripStatus2.Text = "Openning Btcclicks.com...";
+                lstStatus2.Text += System.Environment.NewLine + "Openning Btcclicks.com..." + System.Environment.NewLine;
                 url = "http://btcclicks.com/ads";
                 desc = "Open Btcclicks.com by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if(chkBtcVic.Checked)
-            { 
-                //toolStripStatus2.Text = "Openning Btcvic.com...";
+            {
+                lstStatus2.Text += System.Environment.NewLine + "Openning Btcvic.com..." + System.Environment.NewLine;
                 url = "http://btcvic.com/ads";
                 desc = "Open Btcvic.com by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if (chkAdbtc.Checked)
             {
-                //toolStripStatus2.Text = "Openning Adbtc.top...";
+                lstStatus2.Text += System.Environment.NewLine + "Openning Adbtc.top..." + System.Environment.NewLine;
                 url = "http://adbtc.top/";
                 desc = "Open Adbtc.top by Brave";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
             else if (chkHashingadSpace.Checked)
-            { 
-                //toolStripStatus2.Text = "Openning Hashingadspace.com...";
+            {
+                lstStatus2.Text += System.Environment.NewLine + "Openning Hashingadspace.com..." + System.Environment.NewLine;
                 url = "https://www.hashingadspace.com/dashboard.php";
                 desc = "Open Hashingadspace.com by Yandex";
                 Handler.StartProcess(OperationType.STARTMANUAL, path, url, false, false, desc);
             }
+            Application.DoEvents();
         }
         private void StopManual()
         {
             KillProcesses(false, true);
             manualStopped = true;
+            isRunningManual = false;
             EnableControls(true, false);
             btnStartManual.Text = "START";
             if (chkReminder.Checked) Task.Factory.StartNew(() => ReminderManualTasks());            
         }
         private void ReminderManualTasks()
-        {
-            toolStripStatus2.Text = "Waiting for next running...";
+        {            
             Handler.Log("//======================WAIT FOR NEXT RUN======================//");
             Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
             Handler.Log("Wait 1 hour for next running of manual tasks");
+            lstStatus2.Text += System.Environment.NewLine + "//======================WAIT FOR NEXT RUN======================//" + System.Environment.NewLine;
+            lstStatus2.Text += System.Environment.NewLine + "Wait 1 hour for next running of manual tasks" + System.Environment.NewLine;
+            Application.DoEvents();
             var counterManualTaskTimer = 0;
             do
             {
@@ -870,14 +881,14 @@ namespace MyTool
                     !chkBither.Checked && !chkBtcClicks.Checked && !chkBtcVic.Checked &&
                     !chkAdbtc.Checked && !chkHashingadSpace.Checked)
                 {
-                    toolStripStatus2.Text = "Ready!";
+                    //toolStripStatus2.Text = "Ready!";
                     return;
                 }
                 counterManualTaskTimer++;
                 Thread.Sleep(1000 * 60);
             } while (counterManualTaskTimer <= 61);
             MessageBox.Show("It's time to run task!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            toolStripStatus2.Text = "Ready!";
+            //toolStripStatus2.Text = "Ready!";
             SetWindowsState(MyWindowState.NORMAL);
             tabManualTasks.Select();
             tabManualTasks.Focus();
@@ -1216,8 +1227,7 @@ namespace MyTool
                         if (!chk.Checked) continue;
                         chk.Enabled = true;
                     }
-                }
-                else toolStripStatus2.Text = "Ready!";
+                }                
                 //foreach (Control ctr in groupNoProxyTasks.Controls) ctr.Enabled = isEnabled;
             }
         }
@@ -1335,28 +1345,21 @@ namespace MyTool
             numOfProfilesManualProxy = Properties.Settings.Default.TotalProfilesManualProxy;
         }
         private void KillProcesses(bool isAuto, bool isUsedBatFile)
-        {
-            if (isAuto) toolStripStatus.Text = "Ready!";
-            else toolStripStatus2.Text = "Ready!";
+        {   
             if (isUsedBatFile)
             {
                 var path = string.Format(killProcessPath, BRAVE);
                 if (File.Exists(path) && !isAuto) Handler.StopProcessByBatFile(path, OperationType.STARTMANUAL, BRAVE);
-
                 if (isAuto)
                 {
-                    path = string.Format(killProcessPath, MICROSOFTEDGE);
-                    if (File.Exists(path)) Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, MICROSOFTEDGE);
-
                     path = string.Format(killProcessPath, COCCOC);
                     if (File.Exists(path)) Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, COCCOC);
-
-                    path = string.Format(killProcessPath, YANDEX);
-                    if (File.Exists(path)) Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, YANDEX);
+                    path = string.Format(killProcessPath, CHROME);
+                    if (File.Exists(path)) Handler.StopProcessByBatFile(path, OperationType.STARTAUTO, CHROME);
                 }                
             }
-            else Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, true, true);
-            if(isAuto) Handler.DeleteFiles(true, startIndex, endIndex, chkPresearch.Checked, chkTimebucks.Checked);
+            else Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, true, true);            
+            if (isAuto) Handler.DeleteFiles(true, startIndex, endIndex, chkPresearch.Checked, chkTimebucks.Checked);
         }
         #endregion        
     }

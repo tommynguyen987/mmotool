@@ -58,9 +58,9 @@ namespace MyTool
                 };
             }        
             process.Start();
-            if(isSaveProcessed) SaveProcessIds(taskType, process.Id);
+            if(isSaveProcessed) SaveProcessIds(taskType, process.Id, process.ProcessName);
         }
-        public static void SaveProcessIds(frmAutoClicker.OperationType taskType, int id)
+        public static void SaveProcessIds(frmAutoClicker.OperationType taskType, int id, string processName)
         {            
             var c = ";";
             var ids = "";
@@ -88,8 +88,9 @@ namespace MyTool
                     break;
             }            
             Properties.Settings.Default.Save();            
-            var tw = new StreamWriter(frmAutoClicker.processIdsFilePath);
-            tw.WriteLine(ids+c+id);
+            var tw = new StreamWriter(frmAutoClicker.processIdsFilePath,true);
+            if(ids != "") tw.WriteLine(ids+c+id);
+            tw.WriteLine(processName+':'+id);
             tw.Close();
         }
         public static void DeleteProcessIds()
@@ -101,12 +102,12 @@ namespace MyTool
             var listProcessIds = new List<int>();
             try
             {
-                //var processIds = File.ReadLines(frmAutoClicker.processIdsFilePath);
-                //foreach (var id in processIds)
-                //{
-                //    if (string.IsNullOrEmpty(id)) continue;
-                //    listProcessIds.Add(int.Parse(id));
-                //}
+                var processIds = File.ReadLines(frmAutoClicker.processIdsFilePath);
+                foreach (var id in processIds)
+                {
+                    if (string.IsNullOrEmpty(id)) continue;
+                    listProcessIds.Add(int.Parse(id));
+                }
                 return listProcessIds;
             }
             catch (Exception)
