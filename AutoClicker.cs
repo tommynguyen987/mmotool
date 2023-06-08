@@ -281,16 +281,7 @@ namespace MyTool
             {
                 autoStopped = true;
                 MessageBox.Show("You haven't installed Firefox!" + Environment.NewLine + "Please install Firefox and run again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                if (isAuto)
-                {
-                    btnStartTasks.Text = "START";
-                    //lstStatus.Text = "Ready!";
-                }
-                //else
-                //{
-                    //btnStartManual.Text = "START";
-                    //toolStripStatus2.Text = "Ready!";
-                //}
+                if (isAuto) btnStartTasks.Text = "START";
                 //EnableControls(true, isAuto);
                 return;
             }            
@@ -347,10 +338,7 @@ namespace MyTool
             {
                 try
                 {
-                    if (autoStopped)
-                    {
-                        return;
-                    }
+                    if (autoStopped) return;
                     if (!chkTimebucks.Checked && !chkPresearch.Checked && !chkPaidviewpoint.Checked && !chkIndexBitco.Checked)
                     {
                         lstStatus.Text += System.Environment.NewLine + "Please choose at lease a task to run." + System.Environment.NewLine;
@@ -363,19 +351,10 @@ namespace MyTool
                         var profile = "";
                         if (!isRunning)
                         {
-                            //if (isProxy)
-                            //{
-                            if (i == 1) user = auto;// + "Default";
-                                                    //else user = auto + proxy + "User";
-                                                    //}
-                            else
-                                user = auto + "User";
-                            
-                            //Handler.Log("//==========================RUN TASKS==========================//");
+                            if (i == 1) user = auto;
+                            else user = auto + "User";
                             for (var j = 1; j <= numProfilesEveryRunning; j++)
                             {
-                                //Handler.Log("-----------------------" + DateTime.Now.ToString("dd-MM-yyyy hh:mm:ss") + "-----------------------");
-                                //Handler.Log("Profile index: " + j.ToString());                                
                                 var jj = (j + i - 1).ToString();
                                 var k = 0;
                                 var isDefault = true;
@@ -571,10 +550,7 @@ namespace MyTool
                                     isRunning = true;
                                     dicRunnings.Remove(jj);
                                     dicRunnings.Add(jj, true);
-                                    lstStatus.Text += System.Environment.NewLine + serviceType + numOfProfiles + ", openning profile " + (jj == "1" ? "Default" : jj) + System.Environment.NewLine;
-                                    Application.DoEvents();
                                     File.WriteAllText(profileIndexFilePath, jj.ToString());                                    
-                                    //Thread.Sleep(5000);
                                 }
                             }
                         }
@@ -597,9 +573,7 @@ namespace MyTool
                                 var desc = "Open profile " + profile + Environment.NewLine; 
                                 desc += "-----------------------------------------------------------------" + Environment.NewLine;                                
                                 desc += "Running the task with profile " + (startIndex == 1 ? "Default" : "User" + startIndex) + (startIndex < endIndex ? (" to User" + endIndex) : "");                                
-                                Handler.StartProcess(OperationType.STARTAUTO, appPath, profile, false, true, desc);
-                                lstStatus.Text += System.Environment.NewLine + desc + System.Environment.NewLine;
-                                Application.DoEvents();
+                                Handler.StartProcess(OperationType.STARTAUTO, appPath, profile, false, true, desc);                                
                                 var timer = 40 * 60;
                                 if (runT && !runS_T && runS) timer = 30 * 60;
                                 else if (runS || runT && !runS_T) timer = 20 * 60;
@@ -615,16 +589,19 @@ namespace MyTool
                                             m--;
                                             s = 59;
                                         }
-                                        lstStatus.Text += System.Environment.NewLine + "Running the task with profile " + (startIndex == 1 ? "Default" : "User" + startIndex) + (startIndex < endIndex ? (" to User" + endIndex) : "") + ", please wait for next profiles in ... " + m + ":" + s + System.Environment.NewLine;
+                                        lstStatus.Text += System.Environment.NewLine + serviceType + numOfProfiles + ", openning profile " + (startIndex == 1 ? "Default" : "User" + startIndex) + (startIndex < endIndex ? (" to User" + endIndex) : "") + ", please wait for next profiles in ... " + m + ":" + s + System.Environment.NewLine;
                                         Application.DoEvents();
                                         Thread.Sleep(1000);
-                                    }
-                                    //if (chkFreeBitcoin.Checked) lstStatus.Text = "Openning Freebitcoin.io...";
-                                    //else lstStatus.Text = "Ready!";
+                                    }                                    
                                     Handler.StopProcess(OperationType.STARTAUTO, FIREFOX, false, false);
                                     isRunning = false;
                                     isRunningAuto = false;
-                                }                                
+                                }
+                                else
+                                {
+                                    lstStatus.Text += System.Environment.NewLine + serviceType + numOfProfiles + ", openning profile Default" + System.Environment.NewLine;
+                                    Application.DoEvents();
+                                }                                    
                             }
                         }
                         currentProfile = i;
@@ -642,12 +619,7 @@ namespace MyTool
                         lstStatus.Text += System.Environment.NewLine + "There's an error when running profiles!" + System.Environment.NewLine;
                         Application.DoEvents();
                         btnStartTasks.Text = "START";
-                    }
-                    //else
-                    //{
-                        //toolStripStatus2.Text = "There's an error when running profiles!";
-                        //btnStartManual.Text = "START";
-                    //}                    
+                    }      
                     return;
                 }
             }
@@ -704,7 +676,7 @@ namespace MyTool
                 }
                 */
                 desc = "Open Freebitco.in by Google Chrome";
-                Handler.StartProcess(OperationType.STARTAUTO, path, url, false, true, desc);
+                Handler.StartProcess(OperationType.STARTAUTO, path, " --profile-directory=Default " + url, false, true, desc);
                 Thread.Sleep(1000 * 60 * 10);
                 //Handler.StopProcess(OperationType.STARTAUTO, CHROME, false, false);
                 lstStatus.Text += System.Environment.NewLine + "Closed Freebitco.in." + System.Environment.NewLine;
